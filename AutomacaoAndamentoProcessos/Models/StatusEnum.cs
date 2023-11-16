@@ -13,8 +13,8 @@ namespace AutomacaoAndamentoProcessos.Models
             Pendente = 1,
             Processando = 2,
             Processado = 3,
-            NaoEcontrado = 4,
-            Erro = 10
+            Desativado= 10,
+            Erro = 4
         };
 
     }
