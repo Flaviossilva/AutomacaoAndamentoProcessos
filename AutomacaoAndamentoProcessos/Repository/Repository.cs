@@ -106,7 +106,7 @@ namespace AutomacaoAndamentoProcessos.Repository
                 {
                     Solicitacao Lersolicitacao = new()
                     {
-                        NumeroProcesso = reader[1].ToString(),
+                        NumeroProcesso = reader[0].ToString(),
                     };
                     Solicitacoes.Add(Lersolicitacao);
 
@@ -190,15 +190,17 @@ namespace AutomacaoAndamentoProcessos.Repository
             }
             return NRegistros;
         }
-        public int GravarLogErro(Solicitacao Solicitacoes, string? Nprocesso = null)
+        public int GravarLogErro(Solicitacao Solicitacoes)
         {
             SqlConnection conexao = ConexaoBanco();
+            var tamanho = Solicitacoes.Log_Erro.Length;
+            if (tamanho > 200)
+            {
+                tamanho = 200;
+            }
             SqlCommand cmd = new();
-            if(Nprocesso!=null)
-            cmd = new($"update Fila_Andamento set Log_Erro='{Solicitacoes.Log_Erro}' where numero_processo='{Solicitacoes.NumeroProcesso}'", conexao);
-            else
-                cmd= new($"update Fila_Andamento set Log_Erro='{Solicitacoes.Log_Erro}' where numero_processo='{Nprocesso}'", conexao);
-            conexao.Open();
+            cmd = new($"update Fila_Andamento set Log_Erro='{Solicitacoes.Log_Erro.Substring(0, tamanho)}' where numero_processo='{Solicitacoes.NumeroProcesso}'", conexao);
+               conexao.Open();
             try
             {
                 NRegistros = cmd.ExecuteNonQuery();
@@ -265,7 +267,7 @@ namespace AutomacaoAndamentoProcessos.Repository
         {
             SqlConnection conexao = ConexaoBanco();
             SqlCommand cmd = new($" insert into Fila_Andamento(Numero_Processo,[PI],Dt_Proxima_Acao,Dt_Ult_Acao,Vencimento)select  processo,[PI],GETDATE(),GETDATE(),'7' from numeros_processos as a inner join controle as b on b.controle_proc_interno=a.[pi]  where processo not in  (select distinct Numero_Processo from Fila_Andamento) and b.controle_responsavel in('N.M.ADVOGADOS','AVARÉ') and b.controle_concluido='false' and b.controle_tipo_roteiro in('EF','EXH')", connection: conexao);
-            SqlCommand cmd1 = new($" insert into Fila_Andamento(Numero_Processo,[PI],Dt_Proxima_Acao,Dt_Ult_Acao,Vencimento)select  processo,[PI],GETDATE(),GETDATE(),'7' from numeros_processos as a inner join controle as b on b.controle_proc_interno=a.[pi]  where  processo not in  (select distinct Numero_Processo from Fila_Andamento) and b.controle_responsavel in('N.M.ADVOGADOS','AVARÉ') and b.controle_concluido='false' and b.controle_tipo_roteiro not in('EF','EXH')", connection: conexao);
+            SqlCommand cmd1 = new($" insert into Fila_Andamento(Numero_Processo,[PI],Dt_Proxima_Acao,Dt_Ult_Acao,Vencimento)select  processo,[PI],GETDATE(),GETDATE(),'2' from numeros_processos as a inner join controle as b on b.controle_proc_interno=a.[pi]  where  processo not in  (select distinct Numero_Processo from Fila_Andamento) and b.controle_responsavel in('N.M.ADVOGADOS','AVARÉ') and b.controle_concluido='false' and b.controle_tipo_roteiro not in('EF','EXH')", connection: conexao);
             conexao.Open();
             try
             {
@@ -313,7 +315,7 @@ namespace AutomacaoAndamentoProcessos.Repository
         public void RetiraFila(string NProcesso)
         {
             SqlConnection conexao = ConexaoBanco();
-            SqlCommand cmd = new($"update Fila_Andamento set [STATUS]='10' where numeroProcesso='{NProcesso}'", connection: conexao);
+            SqlCommand cmd = new($"update Fila_Andamento set [STATUS]='10' where numero_Processo='{NProcesso}'", connection: conexao);
             conexao.Open();
             try
             {

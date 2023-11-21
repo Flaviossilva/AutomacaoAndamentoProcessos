@@ -13,6 +13,12 @@ using System.Reflection;
 using System.Net.Mail;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
+using System.Xml.Linq;
+using System.Management;
+using System.Net.NetworkInformation;
+using Windows.Networking.BackgroundTransfer;
+using OpenQA.Selenium.Remote;
+using System.Security.Policy;
 
 namespace AutomacaoAndamentoProcessos
 {
@@ -79,7 +85,7 @@ namespace AutomacaoAndamentoProcessos
                             _repository.InserirOrgTabela("2", Solicitacao.NumeroProcesso);
                     }
                 }
-            }        
+            }
             _repository.InserirOrgNull();
         }
 
@@ -123,7 +129,8 @@ namespace AutomacaoAndamentoProcessos
                 {
                     _repository.RetiraFila(Solicitacao.NumeroProcesso);
                 }
-            }catch(Exception )
+            }
+            catch (Exception)
             {
                 throw;
             }
@@ -181,24 +188,35 @@ namespace AutomacaoAndamentoProcessos
                         _ProcessoAtual = Repository.Repository.RetornarDataUltmoRegistro(processo.Pi);
                         if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
                         {
-                            //sem registro novo então Atualizar data texto padrão
-                            _repository.AtualizarTextoTabela(_ProcessoAtual);
-                        }
-                        else if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
-                            && _ProcessoAtual.Andamento != null)
-                        {
-                            //sem registro novo então inserir texto padrão
-                            _repository.AtualizarInserirTextoTabela(processo);
+                            if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
+                        && _ProcessoAtual.Andamento != null)
+                            {
+                                //sem registro novo então Atualizar data texto padrão
+                                _repository.AtualizarTextoTabela(_ProcessoAtual);
+                            }
+                            else
+                            {
+                                _repository.AtualizarInserirTextoTabela(processo);
+                                _repository.AtualizarInserirTextoTabela(processo);
+                            }
                         }
                         else
                         {
-                            _repository.InserirTextoTabelaFila(processo);
-                            _repository.AtualizarInserirTextoTabela(processo);
+                            if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
+                       && _ProcessoAtual.Andamento != null)
+                            {
+                                //sem registro novo então Atualizar data texto padrão
+                                _repository.AtualizarInserirTextoTabela(processo);
+                            }
+                            else
+                            {
+                                _repository.InserirTextoTabelaFila(processo);
+                                _repository.AtualizarInserirTextoTabela(processo);
+                            }
                         }
                         _repository.InserirTextoTabelaAndamento(processo);
 
                         Driver.Quit();
-                        processo.Status = (int)Status.Processado;
 
                         if (GridProcesso.Displayed)
                             Driver.Quit();
@@ -283,8 +301,8 @@ namespace AutomacaoAndamentoProcessos
                                 }
                             }
                             if (TextoTratado.First().Contains("Data   Movimento"))
-                                TextoTratado=TextoTratado.Where(o=>o != TextoTratado[0]).ToArray();
-                               
+                                TextoTratado = TextoTratado.Where(o => o != TextoTratado[0]).ToArray();
+
                             //Juntar Texto
                             foreach (string itemJuntar in TextoTratado)
                             {
@@ -314,7 +332,7 @@ namespace AutomacaoAndamentoProcessos
                                         DataUltimaLinha = numeric;
                                 }
                             }
-                            DataUltimaLinha= DataUltimaLinha.AddDays(-1);
+                            DataUltimaLinha = DataUltimaLinha.AddDays(-1);
                             //tratar Data para Verificações 
                             foreach (string item in TextosAdcionar)
                             {
@@ -399,7 +417,7 @@ namespace AutomacaoAndamentoProcessos
                     //        Pesquisar.Click();
                     #endregion
                     driver.Quit();
-                    driver = IniciarChrome(processo.NumeroProcesso);
+                    driver = IniciarChrome(processo);
                     Thread.Sleep(300);
 
                     driver.Url = $"https://processo.stj.jus.br/processo/pesquisa/?termo={processo.NumeroProcesso}&aplicacao=processos.ea&tipoPesquisa=tipoPesquisaGenerica&chkordem=DESC&chkMorto=MORTO";
@@ -410,7 +428,7 @@ namespace AutomacaoAndamentoProcessos
                     {
                         Thread.Sleep(55000);
                         driver.Quit();
-                        driver = IniciarChrome(processo.NumeroProcesso);
+                        driver = IniciarChrome(processo);
                         driver.Url = $"https://processo.stj.jus.br/processo/pesquisa/?termo={processo.NumeroProcesso}&aplicacao=processos.ea&tipoPesquisa=tipoPesquisaGenerica&chkordem=DESC&chkMorto=MORTO";
 
 
@@ -494,19 +512,31 @@ namespace AutomacaoAndamentoProcessos
                     _ProcessoAtual = Repository.Repository.RetornarDataUltmoRegistro(processo.Pi);
                     if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
                     {
-                        //sem registro novo então Atualizar data texto padrão
-                        _repository.AtualizarTextoTabela(_ProcessoAtual);
-                    }
-                    if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
-                        && _ProcessoAtual.Andamento != null)
-                    {
-                        //sem registro novo então inserir texto padrão
-                        _repository.AtualizarInserirTextoTabela(processo);
+                        if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
+                    && _ProcessoAtual.Andamento != null)
+                        {
+                            //sem registro novo então Atualizar data texto padrão
+                            _repository.AtualizarTextoTabela(_ProcessoAtual);
+                        }
+                        else
+                        {
+                            _repository.AtualizarInserirTextoTabela(processo);
+                            _repository.AtualizarInserirTextoTabela(processo);
+                        }
                     }
                     else
                     {
-                        _repository.InserirTextoTabelaFila(processo);
-                        _repository.AtualizarInserirTextoTabela(processo);
+                        if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
+                   && _ProcessoAtual.Andamento != null)
+                        {
+                            //sem registro novo então Atualizar data texto padrão
+                            _repository.AtualizarInserirTextoTabela(processo);
+                        }
+                        else
+                        {
+                            _repository.InserirTextoTabelaFila(processo);
+                            _repository.AtualizarInserirTextoTabela(processo);
+                        }
                     }
                     _repository.InserirTextoTabelaAndamento(processo);
 
@@ -562,11 +592,14 @@ namespace AutomacaoAndamentoProcessos
         //    string? currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
         //    return Path.Combine(currentDirectory, "chromedriver.exe");
         //}
-        public IWebDriver IniciarChrome(string? NProcesso)
+        public IWebDriver IniciarChrome(Solicitacao Solicitacoes)
         {
             //string chromeDriverPath = GetChromeDriverPath();
             //string currentVersion = GetChromeDriverVersion(chromeDriverPath);
             //string? chromeVersion = GetChromeVersion();
+
+
+
 
             //if (!currentVersion.StartsWith(chromeVersion))
             //{
@@ -598,8 +631,9 @@ namespace AutomacaoAndamentoProcessos
                 options.AddUserProfilePreference("disable-popup-blocking", true);
                 proxy.IsAutoDetect = false;
                 options.Proxy = proxy;
-                driver = new ChromeDriver(@"G:\AutomacaoAndamento\chromeDrive", options);
+                //driverService.HideCommandPromptWindow = false;
                 //driver = new ChromeDriver(@"C:\Users\FlávioSilvaVanquishC\Downloads", options);
+                driver = new ChromeDriver(@"G:\AutomacaoAndamento\chromeDrive", options);
                 driver.Manage().Window.Minimize();
                 return driver;
             }
@@ -607,7 +641,8 @@ namespace AutomacaoAndamentoProcessos
             {
                 //EnviarEmail(ex.ToString());
                 _repository.GravarLogErroChrome(ex.ToString());
-                _repository.GravarLogErro(_solicitacao.First(),NProcesso);
+                Solicitacoes.Log_Erro = ex.ToString();
+                _repository.GravarLogErro(Solicitacoes);
                 throw;
             }
         }

@@ -3,6 +3,7 @@ using AutomacaoAndamentoProcessos.Models;
 using System.Diagnostics;
 using static AutomacaoAndamentoProcessos.Models.OrgEnum;
 using static AutomacaoAndamentoProcessos.Automator;
+using System.Threading;
 
 namespace AutomacaoAndamentoProcessos.Business
 {
@@ -22,16 +23,20 @@ namespace AutomacaoAndamentoProcessos.Business
             try
             {
                 GerarLog("Iniciando Automação");
+               
                 _repository.AlimentarFila();
+                GerarLog("Alimentando Fila");
                 _service.RetirarFila();
+                GerarLog("retira Fila");
                 GerarLog("Gerando Orgs");
                 _service.GerarOrg();
                 //Buscar casos e alterar status para Processando
                 _solicitacao = _repository.RetornaSolicitacoes();
                 while (_solicitacao.Count > 0)
-                {                 
-                    driver = _service.IniciarChrome(_solicitacao[0].NumeroProcesso);                  
+                {
                     GerarLog("Iniciando Chrome");
+                    driver = _service.IniciarChrome(_solicitacao[0]);
+                    GerarLog("Chrome iniciado");
                     foreach (var AtualizaProcessamento in _solicitacao)
                     {
                         _repository.AlterarConsultados(AtualizaProcessamento);

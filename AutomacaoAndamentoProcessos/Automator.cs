@@ -3,6 +3,7 @@ using OpenQA.Selenium.Chrome;
 using AutomacaoAndamentoProcessos.Business;
 using AutomacaoAndamentoProcessos.Models;
 using Windows.UI.Xaml;
+using System.Windows.Forms;
 
 namespace AutomacaoAndamentoProcessos
 {
@@ -18,8 +19,8 @@ namespace AutomacaoAndamentoProcessos
         private void Form1_Load(object sender, EventArgs e)
         {
             //caso a Automação seja um serviço apenas descomentar e criar rotina no windows para inciar o executavel
-            business.Start();
-            Business.Business.Stop();
+            //business.Start();
+            //Business.Business.Stop();
         }
 
         private void Button1_Click(object sender, EventArgs e)
@@ -39,6 +40,8 @@ namespace AutomacaoAndamentoProcessos
         private void RichTextBox1_TextChanged(object sender, EventArgs e)
         {
             Clipboard.GetText(TextDataFormat.Text).ToString();
+            richTextBox1.SelectionStart = richTextBox1.Text.Length;
+            richTextBox1.ScrollToCaret();
 
         }
     }
