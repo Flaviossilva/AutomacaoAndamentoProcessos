@@ -19,8 +19,8 @@ namespace AutomacaoAndamentoProcessos
         private void Form1_Load(object sender, EventArgs e)
         {
             //caso a Automação seja um serviço apenas descomentar e criar rotina no windows para inciar o executavel
-            //business.Start();
-            //Business.Business.Stop();
+            business.Start();
+            business.Stop();
         }
 
         private void Button1_Click(object sender, EventArgs e)
@@ -30,7 +30,7 @@ namespace AutomacaoAndamentoProcessos
 
         private void Button2_Click(object sender, EventArgs e)
         {
-            Business.Business.Stop();
+            business.Stop();
         }
         private static void ProgressBar1_Click(object sender, EventArgs e)
         {

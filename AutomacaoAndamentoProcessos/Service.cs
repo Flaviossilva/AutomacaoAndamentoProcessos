@@ -25,10 +25,11 @@ namespace AutomacaoAndamentoProcessos
     public class Service
     {
         #region Inicializadores
+        List<Solicitacao> _solicitacao = new();
         readonly Repository.Repository _repository = new();
         readonly List<string> TextosAdcionar = new();
-        ProcessoAtual _ProcessoAtual = new();
-        List<Solicitacao> _solicitacao = new();
+
+
         string? TextoTratadoInserir;
         string? AndamentoUm;
         string? AndamentoDois;
@@ -62,6 +63,7 @@ namespace AutomacaoAndamentoProcessos
         //IWebElement? Indisponivel;
         IWebElement? BtnExpandir;
         IWebElement? ValidaPagina;
+
         //IWebElement? VerificaHumano;
         //IWebDriver? VerificaFrameHumano;
         readonly ChromeOptions options = new();
@@ -138,8 +140,13 @@ namespace AutomacaoAndamentoProcessos
 
         public List<Solicitacao> NavegacaoPJE(List<Solicitacao> Processos, IWebDriver Driver)
         {
+
+            //IWebElement? Indisponivel;
+
+
             try
             {
+                ProcessoAtual _ProcessoAtual = new();
                 Driver.Url = "https://pje1g.trf3.jus.br/pje/ConsultaPublica/listView.seam";
                 foreach (Solicitacao processo in Processos)
                 {
@@ -185,7 +192,7 @@ namespace AutomacaoAndamentoProcessos
 
                         //Chamada Sql para Inserir registro no Banco
                         processo.Status = (int)Status.Processado;
-                        _ProcessoAtual = Repository.Repository.RetornarDataUltmoRegistro(processo.Pi);
+                        _ProcessoAtual =_repository.RetornarDataUltmoRegistro(processo.Pi);
                         if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
                         {
                             if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
@@ -247,138 +254,168 @@ namespace AutomacaoAndamentoProcessos
                     string? dataVerifica1 = null;
                     DateTime DataLinhaAtualVerifica;
                     string? dataVerifica = null;
+                    ProcessoAtual _ProcessoAtual = new();
                     string? Juntarlinhas = null;
                     processo.Operador = "AUTOMACAO";
-                    c = 0;
 
-                    driver.Url = "https://esaj.tjsp.jus.br/cpopg/open.do";
-                    Thread.Sleep(900);
-                    BtnOutros = EsperarElemento(driver, "XPath", ("/html/body/div[2]/form/section/div[2]/div/div[1]/div[1]/div/fieldset/label[2]"));
-                    if (BtnOutros != null)
-                        BtnOutros.Click();
-
-                    BtnNumeroProcesso = driver.FindElement(By.XPath("/html/body/div[2]/form/section/div[2]/div/div[1]/div[1]/span[2]/input"));
-                    if (BtnNumeroProcesso.Displayed)
+                    _ProcessoAtual = _repository.RetornarDataUltmoRegistro(processo.Pi);
+                    DataUltimaLinha = (DateTime)_ProcessoAtual.Dt_Ult_Acao;
+                    var TodosProcessos = _repository.RetornaSolicitacoesPi(processo);
+                    foreach (var Proc in TodosProcessos)
                     {
-                        BtnNumeroProcesso.Click();
-                        driver.FindElement(By.XPath("/html/body/div[2]/form/section/div[2]/div/div[1]/div[1]/span[2]/input")).SendKeys(processo.NumeroProcesso);
-                        BtnConsultar = driver.FindElement(By.XPath("/html/body/div[2]/form/section/div[4]/div/input"));
-                        if (BtnConsultar.Displayed)
+                        driver.Url = "https://esaj.tjsp.jus.br/cpopg/open.do";
+                        Thread.Sleep(900);
+                        BtnOutros = EsperarElemento(driver, "XPath", ("/html/body/div[2]/form/section/div[2]/div/div[1]/div[1]/div/fieldset/label[2]"));
+                        if (BtnOutros != null)
+                            BtnOutros.Click();
+
+                        BtnNumeroProcesso = driver.FindElement(By.XPath("/html/body/div[2]/form/section/div[2]/div/div[1]/div[1]/span[2]/input"));
+                        if (BtnNumeroProcesso.Displayed)
                         {
-                            BtnConsultar.Click();
-                            Thread.Sleep(500);
-                            ProcNaoExiste = EsperarElemento(driver, "XPath", "/html/body/div[2]/div[1]/table/tbody/tr[2]/td[2]");
-                            if (ProcNaoExiste != null)
+                            BtnNumeroProcesso.Click();
+                            driver.FindElement(By.XPath("/html/body/div[2]/form/section/div[2]/div/div[1]/div[1]/span[2]/input")).SendKeys(Proc.NumeroProcesso);
+                            BtnConsultar = driver.FindElement(By.XPath("/html/body/div[2]/form/section/div[4]/div/input"));
+                            if (BtnConsultar.Displayed)
                             {
-                                //Processo não encontrado, retira da fila e pula para o proximo
-                                _repository.RetirarTabelaFila(processo);
-                                continue;
-                            }
-                            //Verificar outros Processos Atrelados                 
-                            VerificarProcessos = EsperarElemento(driver, "XPath", "/html/body/div[1]/div[2]/div/div[2]/div[5]/div/a");
-                            if (VerificarProcessos == null)
-                                VerificarProcessos = EsperarElemento(driver, "ClassName", "processoPrinc");
-                            VerificarProcessos?.Click();
-
-                            //Raspa Textos
-                            TextoUltimaFase = EsperarElemento(driver, "XPath", "/html/body/div[2]/table[2]/tbody[1]");
-                            if (TextoUltimaFase != null)
-                                TextoTratado = TextoUltimaFase.Text.ToString().Split("\r\n");
-
-                            if (TextoTratado.Length <= 4 || TextoTratado[0].Contains("Autor  Justiça Pública"))
-                            {
-                                if (TextoTratado[0].Length < 9)
+                                BtnConsultar.Click();
+                                Thread.Sleep(500);
+                                ProcNaoExiste = EsperarElemento(driver, "XPath", "/html/body/div[2]/div[1]/table/tbody/tr[2]/td[2]");
+                                if (ProcNaoExiste != null)
                                 {
-                                    TextoUltimaFase = driver.FindElement(By.XPath("/html/body/div[2]/table[3]"));
+                                    //Processo não encontrado, retira da fila e pula para o proximo
+                                    _repository.RetirarTabelaFila(Proc);
+                                    continue;
+                                }
+                                //Verificar outros Processos Atrelados                 
+                                //VerificarProcessos = EsperarElemento(driver, "XPath", "/html/body/div[1]/div[2]/div/div[2]/div[5]/div/a");
+                                //if (VerificarProcessos == null)
+                                //    VerificarProcessos = EsperarElemento(driver, "ClassName", "processoPrinc");
+                                //VerificarProcessos?.Click();
+                                TextoTratado = null;
+                                TextoUltimaFase = null;
+                                //Raspa Textos
+                                TextoUltimaFase = EsperarElemento(driver, "XPath", "/html/body/div[2]/table[2]/tbody[1]");
+                                if (TextoUltimaFase != null)
                                     TextoTratado = TextoUltimaFase.Text.ToString().Split("\r\n");
-                                }
-                                dataVerifica1 = TextoTratado[0][..10];
-                                VerificaNumeros = DateTime.TryParse(dataVerifica1, out DataLinhaAtualVerifica1);
-                                if (!VerificaNumeros)
+                                if (TextoTratado == null)
                                 {
-                                    TextoUltimaFase = driver.FindElement(By.XPath("/html/body/div[2]/table[3]"));
-                                    TextoTratado = TextoUltimaFase.Text.ToString().Split("\r\n");
+                                    _repository.RetirarFilaDadosDesatualizados(Proc);
+                                    continue;
                                 }
-                            }
-                            if (TextoTratado.First().Contains("Data   Movimento"))
-                                TextoTratado = TextoTratado.Where(o => o != TextoTratado[0]).ToArray();
+                                    
 
-                            //Juntar Texto
-                            foreach (string itemJuntar in TextoTratado)
-                            {
-                                Juntarlinhas = "";
-                                if (itemJuntar.Length > 9)
-                                    dataVerifica = itemJuntar[..10];
-                                else
-                                    dataVerifica = "Sem Data";
-                                VerificaNumeros = DateTime.TryParse(dataVerifica, out DataLinhaAtualVerifica);
-                                if (!VerificaNumeros)
+                                if (TextoTratado.Length <= 4 || TextoTratado[0].Contains("Autor  Justiça Pública"))
                                 {
-                                    Juntarlinhas = TextoTratado[c - 1] + " " + itemJuntar;
-                                    TextosAdcionar.Add(Juntarlinhas);
+                                    if (TextoTratado[0].Length < 9)
+                                    {
+                                        TextoUltimaFase = driver.FindElement(By.XPath("/html/body/div[2]/table[3]"));
+                                        TextoTratado = TextoUltimaFase.Text.ToString().Split("\r\n");
+                                    }
+                                    dataVerifica1 = TextoTratado[0][..10];
+                                    VerificaNumeros = DateTime.TryParse(dataVerifica1, out DataLinhaAtualVerifica1);
+                                    if (!VerificaNumeros)
+                                    {
+                                        TextoUltimaFase = driver.FindElement(By.XPath("/html/body/div[2]/table[3]"));
+                                        TextoTratado = TextoUltimaFase.Text.ToString().Split("\r\n");
+                                    }
                                 }
-                                c++;
-                            }
+                                if (TextoTratado.First().Contains("Data   Movimento"))
+                                    TextoTratado = TextoTratado.Where(o => o != TextoTratado[0]).ToArray();
 
-                            DataUltimaLinha = Convert.ToDateTime(TextosAdcionar.First()[..10]).AddDays(-1);
-                            foreach (string data in TextosAdcionar)
-                            {
-                                string num = data[..10];
-                                DateTime numeric;
-                                bool isNumeric = DateTime.TryParse(num, out numeric);
-                                if (isNumeric)
+                                //Juntar Texto
+                                TextosAdcionar.Clear();
+                                foreach (string itemJuntar in TextoTratado)
                                 {
-                                    if (numeric > DataUltimaLinha)
-                                        DataUltimaLinha = numeric;
+                                    Juntarlinhas = "";
+                                    if (itemJuntar.Length > 9)
+                                        dataVerifica = itemJuntar[..10];
+                                    else
+                                        dataVerifica = "Sem Data";
+                                    VerificaNumeros = DateTime.TryParse(dataVerifica, out DataLinhaAtualVerifica);
+                                    if (!VerificaNumeros)
+                                    {
+                                        Juntarlinhas = TextoTratado[c - 1] + " " + itemJuntar;
+                                        TextosAdcionar.Add(Juntarlinhas);
+                                    }
+                                    c++;
                                 }
-                            }
-                            DataUltimaLinha = DataUltimaLinha.AddDays(-1);
-                            //tratar Data para Verificações 
-                            foreach (string item in TextosAdcionar)
-                            {
-                                string num1 = item[..10];
-                                DateTime numeric1;
-                                bool isNumeric1 = DateTime.TryParse(num1, out numeric1);
-                                if (isNumeric1)
+                                c = 0;
+                                DataUltimaLinha = DataUltimaLinha.AddDays(-1);
+                                //foreach (string data in TextosAdcionar)
+                                //{
+                                //    string num = data[..10];
+                                //    DateTime numeric;
+                                //    bool isNumeric = DateTime.TryParse(num, out numeric);
+                                //    if (isNumeric)
+                                //    {
+                                //        if (numeric > DataUltimaLinha)
+                                //            DataUltimaLinha = numeric;
+                                //    }
+                                //}
+                                DataUltimaLinha = DataUltimaLinha.AddDays(-1);
+                                //tratar Data para Verificações 
+                                foreach (string item in TextosAdcionar)
                                 {
-                                    DataLinhaAtual = Convert.ToDateTime(item[..10]);
-                                    if (DataUltimaLinha <= DataLinhaAtual)
-                                        processo.Andamento.Add(item);
+                                    string num1 = item[..10];
+                                    DateTime numeric1;
+                                    bool isNumeric1 = DateTime.TryParse(num1, out numeric1);
+                                    if (isNumeric1)
+                                    {
+                                        DataLinhaAtual = Convert.ToDateTime(item[..10]);
+                                        if (DataUltimaLinha <= DataLinhaAtual)
+                                            Proc.Andamento.Add(item);
+                                    }
                                 }
-                            }
 
-                            //Chamada Sql para Inserir registro no Banco
-                            processo.Status = (int)Status.Processado;
-                            _ProcessoAtual = Repository.Repository.RetornarDataUltmoRegistro(processo.Pi);
-                            if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
-                            {
-                                if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
-                            && _ProcessoAtual.Andamento != null)
+                                //Chamada Sql para Inserir registro no Banco
+                                Proc.Status = (int)Status.Processado;
+                                if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
                                 {
-                                    //sem registro novo então Atualizar data texto padrão
-                                    _repository.AtualizarTextoTabela(_ProcessoAtual);
+
+                                    if (Proc.Andamento.Count <= 0)
+                                    {
+                                        //sem registro novo então Atualizar data texto padrão
+                                        _repository.AtualizarTextoTabela(_ProcessoAtual);
+                                    }
+                                    else
+                                    {
+                                        _repository.InserirTextoTabelaFila(Proc);
+                                        _repository.AtualizarTextoTabela(_ProcessoAtual);
+
+                                    }
                                 }
                                 else
                                 {
-                                    _repository.AtualizarInserirTextoTabela(processo);
-                                    _repository.AtualizarInserirTextoTabela(processo);
+                                    if (Proc.Andamento.Count <= 0)
+                                    {
+                                        var idAndamento = _repository.RetornarIdUltmoRegistro(processo.Pi);
+                                        if (idAndamento.Id != null)
+                                        {
+                                            _repository.AtualizarTextoTabela(idAndamento);
+                                        }
+                                        else
+                                        {
+                                            //sem registro novo então Atualizar data texto padrão
+                                            _repository.AtualizarInserirTextoTabela(Proc);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var idAndamento = _repository.RetornarIdUltmoRegistro(processo.Pi);
+                                        if (idAndamento.Id != null)
+                                        {
+                                            _repository.InserirTextoTabelaFila(Proc);
+                                            _repository.AtualizarTextoTabela(idAndamento);
+                                        }
+                                        else
+                                        {
+                                            _repository.InserirTextoTabelaFila(Proc);
+                                            _repository.AtualizarInserirTextoTabela(Proc);
+                                        }
+                                    }
                                 }
+                                _repository.InserirTextoTabelaAndamento(Proc);
                             }
-                            else
-                            {
-                                if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
-                           && _ProcessoAtual.Andamento != null)
-                                {
-                                    //sem registro novo então Atualizar data texto padrão
-                                    _repository.AtualizarInserirTextoTabela(processo);
-                                }
-                                else
-                                {
-                                    _repository.InserirTextoTabelaFila(processo);
-                                    _repository.AtualizarInserirTextoTabela(processo);
-                                }
-                            }
-                            _repository.InserirTextoTabelaAndamento(processo);
                         }
                     }
                 }
@@ -394,8 +431,9 @@ namespace AutomacaoAndamentoProcessos
                 return null;
             }
         }
-        public List<Solicitacao> NavegacaoSTJ(List<Solicitacao> Processos, IWebDriver driver)
+        public List<Solicitacao?> NavegacaoSTJ(List<Solicitacao> Processos, IWebDriver driver)
         {
+            ProcessoAtual _ProcessoAtual = new();
             try
             {
                 TextoErro = " ";
@@ -509,7 +547,7 @@ namespace AutomacaoAndamentoProcessos
                     }
                     //Chamada Sql para Inserir registro no Banco
                     processo.Status = (int)Status.Processado;
-                    _ProcessoAtual = Repository.Repository.RetornarDataUltmoRegistro(processo.Pi);
+                    _ProcessoAtual = _repository.RetornarDataUltmoRegistro(processo.Pi);
                     if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
                     {
                         if (_ProcessoAtual.Dt_Ult_Acao >= DataUltimaLinha
@@ -611,6 +649,14 @@ namespace AutomacaoAndamentoProcessos
             //    Console.WriteLine("As versões do ChromeDriver e do Chrome correspondem.");
             //}
 
+            //Mata o chrome driver caso ele esteja aberto em segundo plano
+            Process[] chromeDriverProcesses = Process.GetProcessesByName("chromedriver");
+
+            foreach (var chromeDriverProcess in chromeDriverProcesses)
+            {
+                chromeDriverProcess.Kill();
+            }
+
             try
             {
                 options.AddArgument("--disable-notifications");
@@ -625,15 +671,18 @@ namespace AutomacaoAndamentoProcessos
                 options.AddArgument("--disable-blink-features=AutomationControlled");
                 options.AddArgument("--window-size=600,600");
                 options.AddArgument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36");
+                //config responsavel por setar uma porta, sem essa config é possivel abrir varias instancias da automação 
                 options.AddArgument("--remote-debugging-port=9222");
                 options.PageLoadStrategy = (PageLoadStrategy.None);
                 options.AddAdditionalChromeOption("useAutomationExtension", false);
                 options.AddUserProfilePreference("disable-popup-blocking", true);
                 proxy.IsAutoDetect = false;
                 options.Proxy = proxy;
-                //driverService.HideCommandPromptWindow = false;
+                var driverService = ChromeDriverService.CreateDefaultService(@"G:\AutomacaoAndamento\chromeDrive");
+                //var driverService = ChromeDriverService.CreateDefaultService(@"C:\Users\FlávioSilvaVanquishC\Downloads");
+                driverService.HideCommandPromptWindow = true;
                 //driver = new ChromeDriver(@"C:\Users\FlávioSilvaVanquishC\Downloads", options);
-                driver = new ChromeDriver(@"G:\AutomacaoAndamento\chromeDrive", options);
+                driver = new ChromeDriver(driverService, options);
                 driver.Manage().Window.Minimize();
                 return driver;
             }
@@ -647,7 +696,7 @@ namespace AutomacaoAndamentoProcessos
             }
         }
 
-        public static IWebElement? EsperarElemento(IWebDriver drive, string by, string element)
+        public static IWebElement? EsperarElemento(IWebDriver? drive, string by, string element)
         {
             //Metodo responsavel por buscar elementos no site, caso não encontrar tentar 3x e tratar erro.
             IWebElement? Element = null;

@@ -10,19 +10,54 @@ using Microsoft.Data.SqlClient;
 using static AutomacaoAndamentoProcessos.Models.StatusEnum;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Windows.UI.Xaml;
 
 namespace AutomacaoAndamentoProcessos.Repository
 {
     internal class Repository
     {
         int NRegistros;
+        public List<Solicitacao> RetornaSolicitacoesPi(Solicitacao proc)
+        {
+            List<Solicitacao> Solicitacoes = new();
+            SqlConnection conexao = ConexaoBanco();
+            SqlCommand cmd = new($"select * From Fila_Andamento where  [pi]='{proc.Pi}' and orgao='{proc.Orgao}'", conexao);
+            try
+            {
+                conexao.Open();
+                cmd.ExecuteNonQuery();
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    Solicitacao Lersolicitacao = new()
+                    {
+                        NumeroProcesso = reader[1].ToString(),
+                        Pi = (int)reader[2],
+                        Orgao = reader[4].ToString(),
+                        Vencimento = Convert.ToInt32(reader[5].ToString()),
+                        Status = Convert.ToInt32(reader[7].ToString()),
+                        Tentativas = Convert.ToInt32(reader[8].ToString()),
+                        Dt_Ult_Acao = Convert.ToDateTime(reader[9].ToString()),
+                        Dt_Proxima_Acao = Convert.ToDateTime(reader[10].ToString()),
+                    };
+                    Solicitacoes.Add(Lersolicitacao);
+                }
+                conexao.Close();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+            return Solicitacoes;
+        }
+
         public List<Solicitacao> RetornaSolicitacoes()
         {
             List<Solicitacao> Solicitacoes = new();
             for (int NOrg = 1; NOrg < 4; NOrg++)
             {
                 SqlConnection conexao = ConexaoBanco();
-                SqlCommand cmd = new($"select top 50 * From Fila_Andamento where orgao='{NOrg}' and status='{(int)Status.Pendente}'", conexao);
+                SqlCommand cmd = new($"select top 50 * From Fila_Andamento where orgao='{NOrg}' and [status]='{(int)Status.Pendente}'", conexao);
                 try
                 {
                     conexao.Open();
@@ -57,6 +92,7 @@ namespace AutomacaoAndamentoProcessos.Repository
             }
             return Solicitacoes;
         }
+
         public static List<Solicitacao> RetornaSolicitacoesOrg()
         {
             List<Solicitacao> Solicitacoes = new();
@@ -200,7 +236,7 @@ namespace AutomacaoAndamentoProcessos.Repository
             }
             SqlCommand cmd = new();
             cmd = new($"update Fila_Andamento set Log_Erro='{Solicitacoes.Log_Erro.Substring(0, tamanho)}' where numero_processo='{Solicitacoes.NumeroProcesso}'", conexao);
-               conexao.Open();
+            conexao.Open();
             try
             {
                 NRegistros = cmd.ExecuteNonQuery();
@@ -236,18 +272,20 @@ namespace AutomacaoAndamentoProcessos.Repository
 
                 SqlConnection conexao = ConexaoBanco();
                 string TextoAntes;
-                if (Andamento.Contains("Remetido as DJE") || Andamento.Contains("Disponibilizado no DJ Eletrônico"))
+                var tamanho = Andamento.Length-11;
+                if (Andamento.Substring(11,tamanho).ToLower().Contains("remetido ao dje relação") || Andamento.Substring(11, tamanho).ToLower().Contains("disponibilizado no dj eletrônico"))
                 {
-                    TextoAntes = "DOE:";
+                    TextoAntes = $"DOE: {Processo.NumeroProcesso} -";
                     Processo.Operador = "Publicação";
                 }
                 else
                 {
-                    TextoAntes = "NET:";
+                    TextoAntes = $"NET:{Processo.NumeroProcesso} -";
                     Processo.Operador = "NET";
                 }
+
                 var Aandamento = Andamento.Replace("'", " ");
-                SqlCommand cmd = new($"insert into controle_andamentos(andamento_num_interno,andamento_data,andamento_andamento,andamento_operador) Values('{Processo.Pi}','{DateTime.Now}','{TextoAntes} {Aandamento}','{Processo.Operador}')", connection: conexao);
+                SqlCommand cmd = new($"insert into controle_andamentos(andamento_num_interno,andamento_data,andamento_andamento,andamento_operador) Values('{Processo.Pi}','{DateTime.Now.ToString("dd/MM/yyyy")}','{TextoAntes} {Aandamento}','{Processo.Operador}')", connection: conexao);
                 conexao.Open();
                 try
                 {
@@ -276,7 +314,7 @@ namespace AutomacaoAndamentoProcessos.Repository
                 conexao.Close();
                 AlimentarFilaSeguinte();
             }
-            catch (Exception )
+            catch (Exception)
             {
                 throw;
             }
@@ -291,7 +329,7 @@ namespace AutomacaoAndamentoProcessos.Repository
                 cmd.ExecuteNonQuery();
                 conexao.Close();
             }
-            catch (Exception )
+            catch (Exception)
             {
                 throw;
             }
@@ -299,7 +337,7 @@ namespace AutomacaoAndamentoProcessos.Repository
         public void AlimentarFilaSeguinte()
         {
             SqlConnection conexao = ConexaoBanco();
-            SqlCommand cmd = new($"update Fila_Andamento set [STATUS]='1',log_Erro='' where Dt_Proxima_Acao='{DateTime.Now.AddDays(1)}' and [STATUS] in('3','4')", connection: conexao);
+            SqlCommand cmd = new($"update Fila_Andamento set [STATUS]='1',log_Erro='' where Dt_Proxima_Acao='{DateTime.Now.AddDays(1).ToString("dd/MM/yyyy")}' and [STATUS] in('3','4')", connection: conexao);
             conexao.Open();
             try
             {
@@ -333,9 +371,9 @@ namespace AutomacaoAndamentoProcessos.Repository
             SqlCommand cmd = new();
             int novaOrg = Convert.ToInt32(Processo.Orgao) + 1;
             if (novaOrg > 3)
-                cmd = new($"update Fila_Andamento set [Status]='{(int)Status.Erro}',Dt_Ult_Acao='{DateTime.Now}',Dt_Proxia_Acao'{DateTime.Now.AddDays(7)}' where numero_processo='{Processo.NumeroProcesso}'", connection: conexao);
+                cmd = new($"update Fila_Andamento set [Status]='{(int)Status.Erro}',Dt_Ult_Acao='{DateTime.Now:dd/MM/yyyy}',Dt_Proxima_Acao='{DateTime.Now.AddDays(7):dd/MM/yyyy}' where numero_processo='{Processo.NumeroProcesso}'", connection: conexao);
             else
-                cmd = new($"update Fila_Andamento set [Status]='{(int)Status.Pendente}',Dt_Ult_Acao='{DateTime.Now}',Orgao='{novaOrg}' where numero_processo='{Processo.NumeroProcesso}'", connection: conexao);
+                cmd = new($"update Fila_Andamento set [Status]='{(int)Status.Pendente}',Dt_Ult_Acao='{DateTime.Now:dd/MM/yyyy}',Dt_Proxima_Acao='{DateTime.Now.ToString("dd/MM/yyyy")}', Orgao='{novaOrg}' where numero_processo='{Processo.NumeroProcesso}'", connection: conexao);
             conexao.Open();
             try
             {
@@ -350,27 +388,46 @@ namespace AutomacaoAndamentoProcessos.Repository
             }
             return NRegistros;
         }
+
+        public int RetirarFilaDadosDesatualizados(Solicitacao Processo)
+        {
+            SqlConnection conexao = ConexaoBanco();
+            SqlCommand cmd = new();
+            cmd = new($"update Fila_Andamento set [Status]='{(int)Status.Erro}',Log_Erro='Numero de Processo Desatualizado',Dt_Ult_Acao='{DateTime.Now.ToString("dd/MM/yyyy")}',Dt_Proxima_Acao='{DateTime.Now.AddDays(7).ToString("dd/MM/yyyy")}' where numero_processo='{Processo.NumeroProcesso}'", connection: conexao);
+            conexao.Open();
+            try
+            {
+                NRegistros = cmd.ExecuteNonQuery();
+                conexao.Close();
+            }
+            catch (Exception ex)
+            {
+                Processo.Log_Erro = ex.Message;
+                GravarLogErro(Processo);
+                throw;
+            }
+            return NRegistros;
+        }
+
         public int InserirTextoTabelaAndamento(Solicitacao Processo)
         {
             SqlConnection conexao = ConexaoBanco();
+            string? AAndamento = null;
+            if (Processo.Andamento.Count > 0)
+                AAndamento = Processo.Andamento[0].Replace("'", " ");
 
-            foreach (var Andamento in Processo.Andamento)
+            SqlCommand cmd = new($"update Fila_Andamento set Andamento='{AAndamento}',[STATUS]='{(int)Status.Processado}',Dt_Ult_Acao='{DateTime.Now.ToString("dd/MM/yyyy")}',Dt_Proxima_Acao='{DateTime.Now.AddDays(Convert.ToDouble(Processo.Vencimento)).ToString("dd/MM/yyyy")}' where Numero_Processo='{Processo.NumeroProcesso}'", conexao);
+            conexao.Open();
+            try
             {
-
-
-                var AAndamento = Andamento.Replace("'", " ");
-                SqlCommand cmd = new($"update Fila_Andamento set Andamento='{AAndamento}',[STATUS]='{(int)Status.Processado}',Dt_Proxima_Acao='{DateTime.Now.AddDays(Convert.ToDouble(Processo.Vencimento))}' where Numero_Processo='{Processo.NumeroProcesso}'", conexao);
-                conexao.Open();
-                try
-                {
-                    NRegistros = cmd.ExecuteNonQuery();
-                    conexao.Close();
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
+                NRegistros = cmd.ExecuteNonQuery();
+                conexao.Close();
             }
+            catch (Exception)
+            {
+                throw;
+            }
+
             return NRegistros;
         }
         public int InserirOrgTabela(string orgao, string numeroProcesso)
@@ -408,7 +465,7 @@ namespace AutomacaoAndamentoProcessos.Repository
         public int AtualizarTextoTabela(ProcessoAtual Processo)
         {
             SqlConnection conexao = ConexaoBanco();
-            SqlCommand cmd = new($"update Controle_Andamentos set Andamento_Data='{DateTime.Now}' where Andamento_Num='{Processo.Id}'", conexao);
+            SqlCommand cmd = new($"update Controle_Andamentos set Andamento_Data='{DateTime.Now.AddMinutes(1).ToString("dd/MM/yyyy")}' where Andamento_Num='{Processo.Id}'", conexao);
             conexao.Open();
             try
             {
@@ -424,7 +481,7 @@ namespace AutomacaoAndamentoProcessos.Repository
         public int AtualizarInserirTextoTabela(Solicitacao Processo)
         {
             SqlConnection conexao = ConexaoBanco();
-            SqlCommand cmd = new($"insert into controle_andamentos(andamento_num_interno,andamento_data,andamento_andamento,andamento_operador) Values('{Processo.Pi}','{DateTime.Now}','PROCESSO CONSULTADO PELA AUTOMAÇÃO','AUTOMACAO')", connection: conexao);
+            SqlCommand cmd = new($"insert into controle_andamentos(andamento_num_interno,andamento_data,andamento_andamento,andamento_operador) Values('{Processo.Pi}','{DateTime.Now.ToString("dd/MM/yyyy")}','PROCESSO CONSULTADO PELA AUTOMAÇÃO','AUTOMACAO')", connection: conexao);
             conexao.Open();
             try
             {
@@ -489,7 +546,7 @@ namespace AutomacaoAndamentoProcessos.Repository
             }
             return QuantidadeTotalRegistros;
         }
-        public static ProcessoAtual RetornarDataUltmoRegistro(int Pi)
+        public ProcessoAtual RetornarIdUltmoRegistro(int Pi)
         {
             ProcessoAtual Processo = new();
             SqlConnection conexao = ConexaoBanco();
@@ -497,12 +554,6 @@ namespace AutomacaoAndamentoProcessos.Repository
             try
             {
                 conexao.Open();
-                int retorno = cmd.ExecuteNonQuery();
-                if (retorno < 0)
-                {
-                    cmd = new($"SELECT top 1 andamento_data,andamento_andamento,andamento_num from controle_andamentos where andamento_num_interno='{Pi}' order by andamento_data desc ", conexao);
-                    cmd.ExecuteNonQuery();
-                }
                 SqlDataReader reader = cmd.ExecuteReader();
                 while (reader.Read())
                 {
@@ -510,6 +561,48 @@ namespace AutomacaoAndamentoProcessos.Repository
                     Processo.Andamento = reader[1].ToString();
                     Processo.Id = reader[2].ToString();
                 }
+
+                conexao.Close();
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+
+            return Processo;
+        }
+        public ProcessoAtual RetornarDataUltmoRegistro(int Pi)
+        {
+            ProcessoAtual Processo = new();
+            SqlConnection conexao = ConexaoBanco();
+            SqlCommand cmd = new($"SELECT top 1 andamento_data,andamento_andamento,andamento_num from controle_andamentos where andamento_num_interno='{Pi}' and andamento_andamento like('PROCESSO CONSULTADO PELA AUTOMAÇÃO') order by andamento_data desc", conexao);
+            try
+            {
+                conexao.Open();
+                SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    Processo.Dt_Ult_Acao = Convert.ToDateTime(reader[0].ToString());
+                    Processo.Andamento = reader[1].ToString();
+                    Processo.Id = reader[2].ToString();
+                }
+
+                if (Processo.Dt_Ult_Acao == null)
+                {
+                    conexao.Close();
+                    conexao.Open();
+                    cmd = new($"SELECT top 1 andamento_data,andamento_andamento,andamento_num from controle_andamentos where andamento_num_interno='{Pi}' order by andamento_data desc ", conexao);
+                    cmd.ExecuteNonQuery();
+                    reader = cmd.ExecuteReader();
+                    while (reader.Read())
+                    {
+                        Processo.Dt_Ult_Acao = Convert.ToDateTime(reader[0].ToString());
+                        Processo.Andamento = reader[1].ToString();
+                        Processo.Id = reader[2].ToString();
+                    }
+                }
+
+
                 conexao.Close();
             }
             catch (Exception)

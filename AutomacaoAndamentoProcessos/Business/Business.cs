@@ -23,11 +23,9 @@ namespace AutomacaoAndamentoProcessos.Business
             try
             {
                 GerarLog("Iniciando Automação");
-               
                 _repository.AlimentarFila();
                 GerarLog("Alimentando Fila");
                 _service.RetirarFila();
-                GerarLog("retira Fila");
                 GerarLog("Gerando Orgs");
                 _service.GerarOrg();
                 //Buscar casos e alterar status para Processando
@@ -77,13 +75,13 @@ namespace AutomacaoAndamentoProcessos.Business
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Erro inesperado {ex.ToString().Substring(0,50)}");
+                MessageBox.Show($"Erro inesperado {ex.ToString()[..50]}");
                 GerarLog(ex.ToString());
                 _repository.GravarLogErro(_solicitacao[0]);
                 throw;
             }
         }
-        public static void Stop()
+        public void Stop()
         {
             GerarLog("Aplicação Encerrada");
             Process.GetCurrentProcess().Kill();
