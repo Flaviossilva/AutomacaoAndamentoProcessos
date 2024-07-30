@@ -2,7 +2,6 @@ using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using AutomacaoAndamentoProcessos.Business;
 using AutomacaoAndamentoProcessos.Models;
-using Windows.UI.Xaml;
 using System.Windows.Forms;
 
 namespace AutomacaoAndamentoProcessos
@@ -16,14 +15,14 @@ namespace AutomacaoAndamentoProcessos
 
         }
 
-        private void Form1_Load(object sender, EventArgs e)
+        private async void Form1_Load(object sender, EventArgs e)
         {
             //caso a Automação seja um serviço apenas descomentar e criar rotina no windows para inciar o executavel
             business.Start();
             business.Stop();
         }
 
-        private void Button1_Click(object sender, EventArgs e)
+        private async void Button1_Click(object sender, EventArgs e)
         {
             business.Start();
         }
