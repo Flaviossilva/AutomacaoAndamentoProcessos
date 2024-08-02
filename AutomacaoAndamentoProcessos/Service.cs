@@ -1,32 +1,12 @@
 ﻿using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using AutomacaoAndamentoProcessos.Models;
 using static AutomacaoAndamentoProcessos.Models.StatusEnum;
 using System.Diagnostics;
 using System.Net;
-using System.Reflection;
 using System.Net.Mail;
-using System.Windows.Forms;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.ListView;
-using System.Xml.Linq;
-using System.Management;
-using System.Net.NetworkInformation;
-using OpenQA.Selenium.Remote;
-using System.Security.Policy;
 using OpenQA.Selenium.Interactions;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Tab;
 using CheckData;
-using System.Drawing.Imaging;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
-using OpenQA.Selenium.Support.UI;
-using System.Runtime.InteropServices;
-using System.Collections;
-using OpenQA.Selenium.DevTools;
 
 namespace AutomacaoAndamentoProcessos
 {
@@ -185,7 +165,10 @@ namespace AutomacaoAndamentoProcessos
 
 
                         Driver.SwitchTo().Window(Driver.WindowHandles.Last());
-                        BtnNumeroProcesso = Driver.FindElement(By.XPath("/html/body/div[5]/div/div/div/div[2]/form/div[1]/div/div/div/div/div[1]/div/div[2]/input"));
+                        Thread.Sleep(2500);
+                        BtnNumeroProcesso= EsperarElemento(driver, "XPath", "/html/body/div[5]/div/div/div/div[2]/form/div[1]/div/div/div/div/div[1]/div/div[2]/input");
+                        if(BtnNumeroProcesso==null)
+                        BtnNumeroProcesso = EsperarElemento(driver, "XPath", "/html/body/div[5]/div/div/div/div[2]/form/div[1]/div/div/div/div/div[1]/div/div[2]/input");
                         if (BtnNumeroProcesso.Displayed)
                         {
 
@@ -196,7 +179,7 @@ namespace AutomacaoAndamentoProcessos
                             if (BtnPesquisar.Displayed)
                                 BtnPesquisar.Click();
 
-                            Thread.Sleep(200);
+                            Thread.Sleep(2000);
                             var ProcessoNEncontrado = EsperarElemento(driver, "XPath", "/html/body/div[5]/div/div/div/div[2]/form/div[2]/div/dl/dt/span");
                             if (ProcessoNEncontrado != null)
                             {
@@ -207,7 +190,7 @@ namespace AutomacaoAndamentoProcessos
                                     _repository.RetirarTabelaFilaPrimeira(processo);
                                 continue;
                             }
-
+                            Thread.Sleep(1000);
                             LinkDetalhesProcesso = Driver.FindElement(By.XPath("/html/body/div[5]/div/div/div/div[2]/form/div[2]/div/table/tbody/tr/td[1]/a/i"));
                             if (LinkDetalhesProcesso.Displayed)
                             {
@@ -222,11 +205,15 @@ namespace AutomacaoAndamentoProcessos
                             TextoTratado = null;
                             TextoTratadoInserir = null;
 
-                            GridProcesso = Driver.FindElement(By.Id("j_id131:processoEvento"));
+                            GridProcesso = EsperarElemento(driver, "Id", "j_id133:processoEventoPanel_body");
+                            if (!GridProcesso.Displayed)
+                                GridProcesso = EsperarElemento(driver, "Id", "j_id133:processoEventoPanel");
                             TextoTratado = GridProcesso.Text.ToString().Split("\r\n");
                             TextoTratadoInserir = TextoTratado[2].TrimStart().TrimEnd();
                             foreach (var item in TextoTratado)
                             {
+                                if (item.Contains("resultados encontrados"))
+                                        break;
                                 if (item.Length > 10)
                                     DataLinhaAtual = Convert.ToDateTime(item[..10]);
                                 if (DataUltimaLinha <= DataLinhaAtual && DataLinhaAtual <= DateTime.Today.AddDays(-1) && (!TextoTratadoInserir.First().Equals(item)))
@@ -1035,45 +1022,7 @@ namespace AutomacaoAndamentoProcessos
             }
         }
         #region Auxiliares
-        //Auxiliares
-        //static string GetChromeDriverVersion(string chromeDriverPath)
-        //{
-        //    if (File.Exists(chromeDriverPath))
-        //    {
-        //        FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(chromeDriverPath);
-        //        return fileVersionInfo.ProductVersion;
-        //    }
-        //    return null;
-        //}
-
-
-
-        //static string? GetChromeVersion()
-        //{
-        //    using (IWebDriver driver = new ChromeDriver("C:\\Users\\FlávioSilvaVanquishC\\source\\repos\\AutomacaoAndamentoProcessos\\AutomacaoAndamentoProcessos\\bin\\Debug\\net6.0-windows"))
-        //    {
-        //        return ((IJavaScriptExecutor)driver).ExecuteScript("return chrome.app.getDetails().version").ToString();
-        //    }
-        //}
-
-        //static void DownloadChromeDriver(string version)
-        //{
-        //    string downloadUrl = $"https://chromedriver.storage.googleapis.com/{version}/chromedriver_win32.zip";
-        //    using (WebClient webClient = new())
-        //    {
-        //        webClient.DownloadFile(downloadUrl, "chromedriver.zip");
-        //    }
-
-        //    // Extrair o arquivo ZIP e substituir o ChromeDriver antigo
-        //    // Certifique-se de incluir a lógica de extração e substituição aqui.
-        //}
-
-        //static string GetChromeDriverPath()
-        //{
-        //    string? currentDirectory = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
-        //    return Path.Combine(currentDirectory, "chromedriver.exe");
-        //}
-        public void MatarProcessos()
+           public void MatarProcessos()
         {
             //Mata o chrome driver caso ele esteja aberto em segundo plano
             Process[] chromeDriverProcesses = Process.GetProcessesByName("chromedriver");

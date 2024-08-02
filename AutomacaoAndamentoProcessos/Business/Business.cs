@@ -24,7 +24,7 @@ namespace AutomacaoAndamentoProcessos.Business
 
             try
             {
-                _service.MatarProcessos();
+                //_service.MatarProcessos();
                 _repository.AlimentarFila();
                 _service.RetirarFila();
                 _service.GerarOrg();
