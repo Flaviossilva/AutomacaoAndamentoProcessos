@@ -14,6 +14,7 @@ namespace AutomacaoAndamentoProcessos.Models
             Processando = 2,
             Processado = 3,
             Desativado= 10,
+            Deletado = 11,
             Erro = 4
         };
 

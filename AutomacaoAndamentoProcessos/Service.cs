@@ -366,7 +366,7 @@ namespace AutomacaoAndamentoProcessos
                             }
                             else
                                 driver.Url = "https://esaj.tjsp.jus.br/cpopg/open.do";
-                            Thread.Sleep(1500);
+                            Thread.Sleep(3500);
                             BtnOutros = EsperarElemento(driver, "XPath", ("/html/body/div[2]/form/section/div[2]/div/div[1]/div[1]/div/fieldset/label[2]"));
                             if (BtnOutros != null)
                                 BtnOutros.Click();
@@ -741,53 +741,54 @@ namespace AutomacaoAndamentoProcessos
                                             Proc.Andamento = ListAndamento;
                                         }
                                         n = 0;
-                                    }
-                                    //Chamada Sql para Inserir registro no Banco
-                                    Proc.Status = (int)Status.Processado;
-                                    if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
-                                    {
-                                        if (Proc.Andamento.Count <= 0)
+
+                                        //Chamada Sql para Inserir registro no Banco
+                                        Proc.Status = (int)Status.Processado;
+                                        if (_ProcessoAtual.Andamento.Contains("PROCESSO CONSULTADO PELA AUTOMAÇÃO"))
                                         {
-                                            //sem registro novo então Atualizar data texto padrão
-                                            _repository.AtualizarTextoTabela(_ProcessoAtual);
-                                        }
-                                        else
-                                        {
-                                            _repository.InserirTextoTabelaFila(Proc);
-                                            _repository.AtualizarTextoTabela(_ProcessoAtual);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (Proc.Andamento.Count <= 0)
-                                        {
-                                            var idAndamento = _repository.RetornarIdUltmoRegistro(processo.Pi);
-                                            if (idAndamento.Id != null)
-                                            {
-                                                _repository.AtualizarTextoTabela(idAndamento);
-                                            }
-                                            else
+                                            if (Proc.Andamento.Count <= 0)
                                             {
                                                 //sem registro novo então Atualizar data texto padrão
-                                                _repository.AtualizarInserirTextoTabela(Proc);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            var idAndamento = _repository.RetornarIdUltmoRegistro(processo.Pi);
-                                            if (idAndamento.Id != null)
-                                            {
-                                                _repository.InserirTextoTabelaFila(Proc);
-                                                _repository.AtualizarTextoTabela(idAndamento);
+                                                _repository.AtualizarTextoTabela(_ProcessoAtual);
                                             }
                                             else
                                             {
                                                 _repository.InserirTextoTabelaFila(Proc);
-                                                _repository.AtualizarInserirTextoTabela(Proc);
+                                                _repository.AtualizarTextoTabela(_ProcessoAtual);
                                             }
                                         }
+                                        else
+                                        {
+                                            if (Proc.Andamento.Count <= 0)
+                                            {
+                                                var idAndamento = _repository.RetornarIdUltmoRegistro(processo.Pi);
+                                                if (idAndamento.Id != null)
+                                                {
+                                                    _repository.AtualizarTextoTabela(idAndamento);
+                                                }
+                                                else
+                                                {
+                                                    //sem registro novo então Atualizar data texto padrão
+                                                    _repository.AtualizarInserirTextoTabela(Proc);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                var idAndamento = _repository.RetornarIdUltmoRegistro(processo.Pi);
+                                                if (idAndamento.Id != null)
+                                                {
+                                                    _repository.InserirTextoTabelaFila(Proc);
+                                                    _repository.AtualizarTextoTabela(idAndamento);
+                                                }
+                                                else
+                                                {
+                                                    _repository.InserirTextoTabelaFila(Proc);
+                                                    _repository.AtualizarInserirTextoTabela(Proc);
+                                                }
+                                            }
+                                        }
+                                        _repository.InserirTextoTabelaAndamento(Proc);
                                     }
-                                    _repository.InserirTextoTabelaAndamento(Proc);
                                 }
                             }
                         }
